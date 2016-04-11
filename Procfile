@@ -1,1 +1,1 @@
-clock: main
+clock: go-vk-random-pin-clock
