@@ -95,6 +95,7 @@ func task() {
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	gocron.Every(5).Seconds().Do(task)
+	interval := strconv.Atoi(os.Getenv("VK_SCHEDULER_INTERVAL_SECONDS"))
+	gocron.Every(interval).Seconds().Do(task)
 	<-gocron.Start()
 }
