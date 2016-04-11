@@ -2,6 +2,18 @@
 
 Heroku clock-процесс на Go для закрепление случайного поста на стене VK.
 
+Установка:
+
+```
+go get github.com/winogradoff/go-vk-random-pin
+```
+
+Запуск:
+
+```
+go-vk-random-pin
+```
+
 В переменных окружения (Config Variables для Heroku) должны быть заданы следущие значения:
 
 ```
