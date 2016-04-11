@@ -7,5 +7,6 @@
     "vk"
   ],
   "image": "heroku/go:1.6",
+  "website": "http://github.com/winogradoff/go-vk-random-pin",
   "repository": "http://github.com/winogradoff/go-vk-random-pin"
 }
