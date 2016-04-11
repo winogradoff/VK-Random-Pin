@@ -97,8 +97,8 @@ func main() {
 
 	authToken := os.Getenv("VK_AUTH_TOKEN")
 	profileUrl := os.Getenv("VK_PROFILE_URL")
-	interval, _ := strconv.Atoi(os.Getenv("VK_SCHEDULER_INTERVAL_SECONDS"))
+	interval, _ := strconv.ParseUint(os.Getenv("VK_SCHEDULER_INTERVAL_SECONDS"), 10, 64)
 	
-	gocron.Every(uint64(interval)).Seconds().Do(task, authToken, profileUrl)
+	gocron.Every(interval).Seconds().Do(task, authToken, profileUrl)
 	<-gocron.Start()
 }
