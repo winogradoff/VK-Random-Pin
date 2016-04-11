@@ -20,8 +20,7 @@ https://oauth.vk.com/authorize?client_id=<client_id>&scope=wall,offline&redirect
 
 Команда выполняется каждые `VK_SCHEDULER_INTERVAL_SECONDS` секунд:
 
-```python
-scheduler = BlockingScheduler()
-scheduler.add_job(self.job, 'interval', seconds=self.scheduler_interval)
-scheduler.start()
+```go
+gocron.Every(interval).Seconds().Do(task, authToken, profileUrl)
+	<-gocron.Start()
 ```
