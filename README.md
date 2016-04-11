@@ -41,4 +41,4 @@ gocron.Every(interval).Seconds().Do(task, authToken, profileUrl)
 
 * [goCron — a Golang Job Scheduling Package](https://github.com/jasonlvhit/gocron)
 * [Jason — easy-to-use JSON library for Go](https://github.com/antonholmquist/jason)
-* [vk_wrapper — Golang api wrapper for most popular Russian social network vk.com](https://github.com/bogdansolomykin/vk_wrapper/vk)
+* [vk_wrapper — Golang api wrapper for most popular Russian social network vk.com](https://github.com/bogdansolomykin/vk_wrapper)
