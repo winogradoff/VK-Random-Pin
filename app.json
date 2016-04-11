@@ -1,0 +1,11 @@
+{
+  "name": "go-vk-random-pin",
+  "description": "Heroku clock-процесс на Go для закрепление случайного поста на стене VK.",
+  "keywords": [
+    "go-vk-random-pin",
+    "go",
+    "vk"
+  ],
+  "image": "heroku/go:1.6",
+  "repository": "http://github.com/winogradoff/go-vk-random-pin"
+}
