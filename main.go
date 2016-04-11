@@ -16,23 +16,22 @@ var (
     InfoLogger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 )
 
-func task() {
+func task(authToken string, profileUrl string) {
 	InfoLogger.Println("===")
-
 	InfoLogger.Println(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).Local())
 
 	var jasonObject *jason.Object
 	var jasonValueArray []*jason.Value
 
+	// Получить ник пользователя
+	parts := strings.Split(profileUrl, "/")
+	userName := parts[len(parts)-1]
+
 	api := vk.Api{
-		AccessToken: os.Getenv("VK_AUTH_TOKEN"),
+		AccessToken: authToken,
 		UserId: "",
 		ExpiresIn: "",
 	}
-
-	profileUrl := os.Getenv("VK_PROFILE_URL")
-	parts := strings.Split(profileUrl, "/")
-	userName := parts[len(parts)-1]
 
 	// Получить UID пользователя по nickname
 	jasonObject, _ = jason.NewObjectFromBytes([]byte(api.Request(
@@ -95,7 +94,11 @@ func task() {
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
+
+	authToken := os.Getenv("VK_AUTH_TOKEN")
+	profileUrl := os.Getenv("VK_PROFILE_URL")
 	interval, _ := strconv.Atoi(os.Getenv("VK_SCHEDULER_INTERVAL_SECONDS"))
-	gocron.Every(interval).Seconds().Do(task)
+	
+	gocron.Every(uint64(interval)).Seconds().Do(task, authToken, profileUrl)
 	<-gocron.Start()
 }
