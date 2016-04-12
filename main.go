@@ -2,23 +2,20 @@ package main
 
 import (
 	"os"
-	"log"
+	"fmt"
 	"strings"
 	"strconv"
 	"math/rand"
 	"time"
+	"flag"
 	"github.com/antonholmquist/jason"
 	"github.com/bogdansolomykin/vk_wrapper/vk"
 	"github.com/jasonlvhit/gocron"
 )
 
-var (
-    InfoLogger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
-)
-
 func task(authToken string, profileUrl string) {
-	InfoLogger.Println("===")
-	InfoLogger.Println(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).Local())
+	fmt.Println("===")
+	fmt.Println(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).Local())
 
 	var jasonObject *jason.Object
 	var jasonValueArray []*jason.Value
@@ -46,7 +43,7 @@ func task(authToken string, profileUrl string) {
 	userId, _ := jasonObject.GetInt64("uid")
 	userIdString := strconv.FormatInt(userId, 10)
 
-	InfoLogger.Println("userId:", userIdString)
+	fmt.Println("userId:", userIdString)
 
 	// Получить общее количество записей на стене
 	jasonObject, _ = jason.NewObjectFromBytes([]byte(api.Request(
@@ -60,7 +57,7 @@ func task(authToken string, profileUrl string) {
 	jasonValueArray, _ = jasonObject.GetValueArray("response")
 	numberOfPosts, _ := jasonValueArray[0].Int64()
 
-	InfoLogger.Println("numberOfPosts:", numberOfPosts)
+	fmt.Println("numberOfPosts:", numberOfPosts)
 
 	// Получить случайный пост
 	jasonObject, _ = jason.NewObjectFromBytes([]byte(api.Request(
@@ -77,7 +74,7 @@ func task(authToken string, profileUrl string) {
 	postId, _ := jasonObject.GetInt64("id")
 	postIdString := strconv.FormatInt(postId, 10)
 
-	InfoLogger.Println("postId:", postIdString)
+	fmt.Println("postId:", postIdString)
 
 	// Закрепить пост
 	api.Request(
@@ -88,17 +85,33 @@ func task(authToken string, profileUrl string) {
 		},
 	)
 
-	InfoLogger.Print("pinned post: ", profileUrl, "?w=wall", userIdString, "_", postIdString)
-	InfoLogger.Println("===")
+	fmt.Print("pinned post: ", profileUrl, "?w=wall", userIdString, "_", postIdString)
+	fmt.Println()
+	fmt.Println("===")
 }
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
+	var (
+		authTokenEnv string
+		profileUrlEnv string
+		intervalEnv uint64
+		authToken string
+		profileUrl string
+		interval uint64
+	)
 
-	authToken := os.Getenv("VK_AUTH_TOKEN")
-	profileUrl := os.Getenv("VK_PROFILE_URL")
-	interval, _ := strconv.ParseUint(os.Getenv("VK_SCHEDULER_INTERVAL_SECONDS"), 10, 64)
-	
+	// Значения из окружения
+	authTokenEnv = os.Getenv("VK_AUTH_TOKEN")
+	profileUrlEnv = os.Getenv("VK_PROFILE_URL")
+	intervalEnv, _ = strconv.ParseUint(os.Getenv("VK_SCHEDULER_INTERVAL_SECONDS"), 10, 64)
+
+	// Значения из командной строки
+	flag.StringVar(&authToken, "token", authTokenEnv, "VK authentication token")
+	flag.StringVar(&profileUrl, "profile", profileUrlEnv, "VK profile URL (vk.com/user)")
+	flag.Uint64Var(&interval, "time", intervalEnv, "Scheduler interval in seconds")
+	flag.Parse()
+
+	rand.Seed(time.Now().UTC().UnixNano())
 	gocron.Every(interval).Seconds().Do(task, authToken, profileUrl)
 	<-gocron.Start()
 }
