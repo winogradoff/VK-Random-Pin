@@ -1,24 +1,21 @@
 package main
 
 import (
-	"os"
-	"fmt"
-	"strings"
-	"strconv"
-	"math/rand"
-	"time"
 	"flag"
-	"github.com/antonholmquist/jason"
+	"fmt"
 	"github.com/bogdansolomykin/vk_wrapper/vk"
 	"github.com/jasonlvhit/gocron"
+	"github.com/winogradoff/gojq"
+	"math/rand"
+	"os"
+	"strconv"
+	"strings"
+	"time"
 )
 
 func task(authToken string, profileUrl string) {
 	fmt.Println("===")
 	fmt.Println(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).Local())
-
-	var jasonObject *jason.Object
-	var jasonValueArray []*jason.Value
 
 	// Получить ник пользователя
 	parts := strings.Split(profileUrl, "/")
@@ -26,89 +23,73 @@ func task(authToken string, profileUrl string) {
 
 	api := vk.Api{
 		AccessToken: authToken,
-		UserId: "",
-		ExpiresIn: "",
+		UserId:      "",
+		ExpiresIn:   "",
 	}
 
+	var json string
+	var parser *gojq.JQ
+
 	// Получить UID пользователя по nickname
-	jasonObject, _ = jason.NewObjectFromBytes([]byte(api.Request(
+	json = api.Request(
 		"users.get",
 		map[string]string{
 			"user_ids": userName,
 		},
-	)))
-
-	jasonValueArray, _ = jasonObject.GetValueArray("response")
-	jasonObject, _ = jasonValueArray[0].Object()
-	userId, _ := jasonObject.GetInt64("uid")
-	userIdString := strconv.FormatInt(userId, 10)
-
-	fmt.Println("userId:", userIdString)
+	)
+	parser, _ = gojq.NewStringQuery(json)
+	userId, _ := parser.QueryToInt64("response.[0].uid")
+	fmt.Println("uid:", userId)
 
 	// Получить общее количество записей на стене
-	jasonObject, _ = jason.NewObjectFromBytes([]byte(api.Request(
+	json = api.Request(
 		"wall.get",
 		map[string]string{
-			"owner_id": userIdString,
-			"count": "1",
+			"owner_id": strconv.FormatInt(userId, 10),
+			"count":    "1",
 		},
-	)))
-
-	jasonValueArray, _ = jasonObject.GetValueArray("response")
-	numberOfPosts, _ := jasonValueArray[0].Int64()
-
+	)
+	parser, _ = gojq.NewStringQuery(json)
+	numberOfPosts, _ := parser.QueryToInt64("response.[0]")
 	fmt.Println("numberOfPosts:", numberOfPosts)
 
 	// Получить случайный пост
-	jasonObject, _ = jason.NewObjectFromBytes([]byte(api.Request(
+	json = api.Request(
 		"wall.get",
 		map[string]string{
-			"owner_id": userIdString,
-			"count": "1",
-			"offset": strconv.Itoa(rand.Intn(int(numberOfPosts))),
+			"owner_id": strconv.FormatInt(userId, 10),
+			"count":    "1",
+			"offset":   strconv.FormatInt(rand.Int63n(numberOfPosts), 10),
 		},
-	)))
-
-	jasonValueArray, _ = jasonObject.GetValueArray("response")
-	jasonObject, _ = jasonValueArray[1].Object()
-	postId, _ := jasonObject.GetInt64("id")
-	postIdString := strconv.FormatInt(postId, 10)
-
-	fmt.Println("postId:", postIdString)
+	)
+	parser, _ = gojq.NewStringQuery(json)
+	postId, _ := parser.QueryToInt64("response.[1].id")
+	fmt.Println("postId:", postId)
 
 	// Закрепить пост
 	api.Request(
 		"wall.pin",
 		map[string]string{
-			"owner_id": userIdString,
-			"post_id": postIdString,
+			"owner_id": strconv.FormatInt(userId, 10),
+			"post_id":  strconv.FormatInt(postId, 10),
 		},
 	)
 
-	fmt.Print("pinned post: ", profileUrl, "?w=wall", userIdString, "_", postIdString)
+	fmt.Print("pinned post: ", profileUrl, "?w=wall", userId, "_", postId)
 	fmt.Println()
 	fmt.Println("===")
 }
 
 func main() {
-	var (
-		authTokenEnv string
-		profileUrlEnv string
-		intervalEnv uint64
-		authToken string
-		profileUrl string
-		interval uint64
-	)
-
 	// Значения из окружения
-	authTokenEnv = os.Getenv("VK_AUTH_TOKEN")
-	profileUrlEnv = os.Getenv("VK_PROFILE_URL")
-	intervalEnv, _ = strconv.ParseUint(os.Getenv("VK_SCHEDULER_INTERVAL_SECONDS"), 10, 64)
+	authToken := os.Getenv("VK_AUTH_TOKEN")
+	profileUrl := os.Getenv("VK_PROFILE_URL")
+	interval, _ := strconv.ParseUint(os.Getenv("VK_SCHEDULER_INTERVAL_SECONDS"), 10, 64)
 
 	// Значения из командной строки
-	flag.StringVar(&authToken, "token", authTokenEnv, "VK authentication token")
-	flag.StringVar(&profileUrl, "profile", profileUrlEnv, "VK profile URL (vk.com/user)")
-	flag.Uint64Var(&interval, "time", intervalEnv, "Scheduler interval in seconds")
+	flag.StringVar(&authToken, "token", authToken, "VK authentication token")
+	flag.StringVar(&profileUrl, "profile", profileUrl, "VK profile URL (vk.com/user)")
+	flag.Uint64Var(&interval, "time", interval, "Scheduler interval in seconds")
 	flag.Parse()
 
 	rand.Seed(time.Now().UTC().UnixNano())

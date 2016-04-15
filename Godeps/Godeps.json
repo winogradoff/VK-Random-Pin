@@ -4,17 +4,20 @@
 	"GodepVersion": "v62",
 	"Deps": [
 		{
-			"ImportPath": "github.com/antonholmquist/jason",
-			"Comment": "v1.0.0-14-g4238031",
-			"Rev": "423803175a265e07c3f35cd8faf009eac345efb8"
-		},
-		{
 			"ImportPath": "github.com/bogdansolomykin/vk_wrapper/vk",
 			"Rev": "40e4d78a7cc6c9b01f0bd3d55405f18fed425f87"
 		},
 		{
+			"ImportPath": "github.com/elgs/gosplitargs",
+			"Rev": "e9cf3de21e146ace7f4a8a42af3d51caf7fe2f3b"
+		},
+		{
 			"ImportPath": "github.com/jasonlvhit/gocron",
 			"Rev": "0b564bf03e9665599efbcba1c6fba3d84212c197"
+		},
+		{
+			"ImportPath": "github.com/winogradoff/gojq",
+			"Rev": "52ddbd7ff6539d2aa400c944a0314f76a21c6ca1"
 		}
 	]
 }
