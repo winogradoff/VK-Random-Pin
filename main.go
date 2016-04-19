@@ -23,52 +23,55 @@ var (
 	interval   uint64
 )
 
-func vkRequest(methodName string, params map[string]string) string {
+func vkRequest(methodName string, params map[string]string) *gojq.JQ {
 	u, _ := url.Parse(API_METHOD_URL + methodName)
 	q := u.Query()
+	q.Set("access_token", authToken)
 	for k, v := range params {
 		q.Set(k, v)
 	}
-	q.Set("access_token", authToken)
 	u.RawQuery = q.Encode()
 	resp, _ := http.Get(u.String())
 	defer resp.Body.Close()
 	content, _ := ioutil.ReadAll(resp.Body)
-	return string(content)
+	parser, _ := gojq.NewStringQuery(string(content))
+	return parser
 }
 
 // Получить id пользователя по ссылке на профиль
 func getUserId() int64 {
-	parts := strings.Split(profileUrl, "/")
-	userName := parts[len(parts)-1]
-	json := vkRequest("users.get", map[string]string{
-		"user_ids": userName,
-	})
-	parser, _ := gojq.NewStringQuery(json)
-	userId, _ := parser.QueryToInt64("response.[0].uid")
+	urlParts := strings.Split(profileUrl, "/")
+	userId, _ := vkRequest(
+		"users.get",
+		map[string]string{
+			"user_ids": urlParts[len(urlParts)-1],
+		},
+	).QueryToInt64("response.[0].uid")
 	return userId
 }
 
 // Получить количество записей на стене пользователя
 func getNumberOfPosts(userId int64) int64 {
-	json := vkRequest("wall.get", map[string]string{
-		"owner_id": strconv.FormatInt(userId, 10),
-		"count":    "1",
-	})
-	parser, _ := gojq.NewStringQuery(json)
-	numberOfPosts, _ := parser.QueryToInt64("response.[0]")
+	numberOfPosts, _ := vkRequest(
+		"wall.get",
+		map[string]string{
+			"owner_id": strconv.FormatInt(userId, 10),
+			"count":    "1",
+		},
+	).QueryToInt64("response.[0]")
 	return numberOfPosts
 }
 
 // Получить случайный пост
 func getRandomPost(userId int64, numberOfPosts int64) int64 {
-	json := vkRequest("wall.get", map[string]string{
-		"owner_id": strconv.FormatInt(userId, 10),
-		"offset":   strconv.FormatInt(rand.Int63n(numberOfPosts), 10),
-		"count":    "1",
-	})
-	parser, _ := gojq.NewStringQuery(json)
-	postId, _ := parser.QueryToInt64("response.[1].id")
+	postId, _ := vkRequest(
+		"wall.get",
+		map[string]string{
+			"owner_id": strconv.FormatInt(userId, 10),
+			"offset":   strconv.FormatInt(rand.Int63n(numberOfPosts), 10),
+			"count":    "1",
+		},
+	).QueryToInt64("response.[1].id")
 	return postId
 }
 
