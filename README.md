@@ -40,5 +40,4 @@ gocron.Every(interval).Seconds().Do(task, authToken, profileUrl)
 ### Зависимости:
 
 * [goCron — a Golang Job Scheduling Package](https://github.com/jasonlvhit/gocron)
-* [vk_wrapper — Golang api wrapper for most popular Russian social network vk.com](https://github.com/bogdansolomykin/vk_wrapper)
 * [gojq — JSON query in Golang](https://github.com/elgs/gojq)
