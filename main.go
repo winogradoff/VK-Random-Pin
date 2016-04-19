@@ -23,25 +23,22 @@ var (
 	interval   uint64
 )
 
-func vkRequest(methodName string, params map[string]string) *gojq.JQ {
-	u, _ := url.Parse(API_METHOD_URL + methodName)
-	q := u.Query()
-	q.Set("access_token", authToken)
+func vkRequestToJQ(methodName string, params map[string]string) *gojq.JQ {
+	values := url.Values{"access_token": {authToken}}
 	for k, v := range params {
-		q.Set(k, v)
+		values.Set(k, v)
 	}
-	u.RawQuery = q.Encode()
-	resp, _ := http.Get(u.String())
+	resp, _ := http.PostForm(API_METHOD_URL+methodName, values)
 	defer resp.Body.Close()
-	content, _ := ioutil.ReadAll(resp.Body)
-	parser, _ := gojq.NewStringQuery(string(content))
-	return parser
+	body, _ := ioutil.ReadAll(resp.Body)
+	jq, _ := gojq.NewStringQuery(string(body))
+	return jq
 }
 
 // Получить id пользователя по ссылке на профиль
 func getUserId() int64 {
 	urlParts := strings.Split(profileUrl, "/")
-	userId, _ := vkRequest(
+	userId, _ := vkRequestToJQ(
 		"users.get",
 		map[string]string{
 			"user_ids": urlParts[len(urlParts)-1],
@@ -52,7 +49,7 @@ func getUserId() int64 {
 
 // Получить количество записей на стене пользователя
 func getNumberOfPosts(userId int64) int64 {
-	numberOfPosts, _ := vkRequest(
+	numberOfPosts, _ := vkRequestToJQ(
 		"wall.get",
 		map[string]string{
 			"owner_id": strconv.FormatInt(userId, 10),
@@ -64,7 +61,7 @@ func getNumberOfPosts(userId int64) int64 {
 
 // Получить случайный пост
 func getRandomPost(userId int64, numberOfPosts int64) int64 {
-	postId, _ := vkRequest(
+	postId, _ := vkRequestToJQ(
 		"wall.get",
 		map[string]string{
 			"owner_id": strconv.FormatInt(userId, 10),
@@ -77,7 +74,7 @@ func getRandomPost(userId int64, numberOfPosts int64) int64 {
 
 // Закрепить пост
 func pinPost(userId int64, postId int64) {
-	vkRequest("wall.pin", map[string]string{
+	vkRequestToJQ("wall.pin", map[string]string{
 		"owner_id": strconv.FormatInt(userId, 10),
 		"post_id":  strconv.FormatInt(postId, 10),
 	})
