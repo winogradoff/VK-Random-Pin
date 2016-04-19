@@ -3,78 +3,95 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/bogdansolomykin/vk_wrapper/vk"
 	"github.com/elgs/gojq"
 	"github.com/jasonlvhit/gocron"
+	"io/ioutil"
 	"math/rand"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func task(authToken string, profileUrl string) {
+const API_METHOD_URL = "https://api.vk.com/method/"
+
+var (
+	authToken  string
+	profileUrl string
+	interval   uint64
+)
+
+func vkRequest(methodName string, params map[string]string) string {
+	u, _ := url.Parse(API_METHOD_URL + methodName)
+	q := u.Query()
+	for k, v := range params {
+		q.Set(k, v)
+	}
+	q.Set("access_token", authToken)
+	u.RawQuery = q.Encode()
+	resp, _ := http.Get(u.String())
+	defer resp.Body.Close()
+	content, _ := ioutil.ReadAll(resp.Body)
+	return string(content)
+}
+
+// Получить id пользователя по ссылке на профиль
+func getUserId() int64 {
+	parts := strings.Split(profileUrl, "/")
+	userName := parts[len(parts)-1]
+	json := vkRequest("users.get", map[string]string{
+		"user_ids": userName,
+	})
+	parser, _ := gojq.NewStringQuery(json)
+	userId, _ := parser.QueryToInt64("response.[0].uid")
+	return userId
+}
+
+// Получить количество записей на стене пользователя
+func getNumberOfPosts(userId int64) int64 {
+	json := vkRequest("wall.get", map[string]string{
+		"owner_id": strconv.FormatInt(userId, 10),
+		"count":    "1",
+	})
+	parser, _ := gojq.NewStringQuery(json)
+	numberOfPosts, _ := parser.QueryToInt64("response.[0]")
+	return numberOfPosts
+}
+
+// Получить случайный пост
+func getRandomPost(userId int64, numberOfPosts int64) int64 {
+	json := vkRequest("wall.get", map[string]string{
+		"owner_id": strconv.FormatInt(userId, 10),
+		"offset":   strconv.FormatInt(rand.Int63n(numberOfPosts), 10),
+		"count":    "1",
+	})
+	parser, _ := gojq.NewStringQuery(json)
+	postId, _ := parser.QueryToInt64("response.[1].id")
+	return postId
+}
+
+// Закрепить пост
+func pinPost(userId int64, postId int64) {
+	vkRequest("wall.pin", map[string]string{
+		"owner_id": strconv.FormatInt(userId, 10),
+		"post_id":  strconv.FormatInt(postId, 10),
+	})
+}
+
+func task() {
 	fmt.Println("===")
 	fmt.Println(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).Local())
 
-	// Получить ник пользователя
-	parts := strings.Split(profileUrl, "/")
-	userName := parts[len(parts)-1]
+	userId := getUserId()
+	numberOfPosts := getNumberOfPosts(userId)
+	postId := getRandomPost(userId, numberOfPosts)
+	pinPost(userId, postId)
 
-	api := vk.Api{
-		AccessToken: authToken,
-		UserId:      "",
-		ExpiresIn:   "",
-	}
-
-	var json string
-	var parser *gojq.JQ
-
-	// Получить UID пользователя по nickname
-	json = api.Request(
-		"users.get",
-		map[string]string{
-			"user_ids": userName,
-		},
-	)
-	parser, _ = gojq.NewStringQuery(json)
-	userId, _ := parser.QueryToInt64("response.[0].uid")
-	fmt.Println("uid:", userId)
-
-	// Получить общее количество записей на стене
-	json = api.Request(
-		"wall.get",
-		map[string]string{
-			"owner_id": strconv.FormatInt(userId, 10),
-			"count":    "1",
-		},
-	)
-	parser, _ = gojq.NewStringQuery(json)
-	numberOfPosts, _ := parser.QueryToInt64("response.[0]")
+	fmt.Println("userId:", userId)
 	fmt.Println("numberOfPosts:", numberOfPosts)
-
-	// Получить случайный пост
-	json = api.Request(
-		"wall.get",
-		map[string]string{
-			"owner_id": strconv.FormatInt(userId, 10),
-			"count":    "1",
-			"offset":   strconv.FormatInt(rand.Int63n(numberOfPosts), 10),
-		},
-	)
-	parser, _ = gojq.NewStringQuery(json)
-	postId, _ := parser.QueryToInt64("response.[1].id")
 	fmt.Println("postId:", postId)
-
-	// Закрепить пост
-	api.Request(
-		"wall.pin",
-		map[string]string{
-			"owner_id": strconv.FormatInt(userId, 10),
-			"post_id":  strconv.FormatInt(postId, 10),
-		},
-	)
-
 	fmt.Print("pinned post: ", profileUrl, "?w=wall", userId, "_", postId)
 	fmt.Println()
 	fmt.Println("===")
@@ -82,9 +99,9 @@ func task(authToken string, profileUrl string) {
 
 func main() {
 	// Значения из окружения
-	authToken := os.Getenv("VK_AUTH_TOKEN")
-	profileUrl := os.Getenv("VK_PROFILE_URL")
-	interval, _ := strconv.ParseUint(os.Getenv("VK_SCHEDULER_INTERVAL_SECONDS"), 10, 64)
+	authToken = os.Getenv("VK_AUTH_TOKEN")
+	profileUrl = os.Getenv("VK_PROFILE_URL")
+	interval, _ = strconv.ParseUint(os.Getenv("VK_SCHEDULER_INTERVAL_SECONDS"), 10, 64)
 
 	// Значения из командной строки
 	flag.StringVar(&authToken, "token", authToken, "VK authentication token")
@@ -93,6 +110,6 @@ func main() {
 	flag.Parse()
 
 	rand.Seed(time.Now().UTC().UnixNano())
-	gocron.Every(interval).Seconds().Do(task, authToken, profileUrl)
+	gocron.Every(interval).Seconds().Do(task)
 	<-gocron.Start()
 }

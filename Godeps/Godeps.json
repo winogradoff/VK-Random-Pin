@@ -4,10 +4,6 @@
 	"GodepVersion": "v62",
 	"Deps": [
 		{
-			"ImportPath": "github.com/bogdansolomykin/vk_wrapper/vk",
-			"Rev": "40e4d78a7cc6c9b01f0bd3d55405f18fed425f87"
-		},
-		{
 			"ImportPath": "github.com/elgs/gojq",
 			"Rev": "53b50bdc9ee9e1474db859ac5439887661c11ee0"
 		},
