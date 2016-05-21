@@ -39,5 +39,4 @@ gocron.Every(interval).Seconds().Do(task, authToken, profileUrl)
 
 ### Зависимости:
 
-* [goCron — a Golang Job Scheduling Package](https://github.com/jasonlvhit/gocron)
 * [gojq — JSON query in Golang](https://github.com/elgs/gojq)

@@ -10,10 +10,6 @@
 		{
 			"ImportPath": "github.com/elgs/gosplitargs",
 			"Rev": "e9cf3de21e146ace7f4a8a42af3d51caf7fe2f3b"
-		},
-		{
-			"ImportPath": "github.com/jasonlvhit/gocron",
-			"Rev": "0b564bf03e9665599efbcba1c6fba3d84212c197"
 		}
 	]
 }
