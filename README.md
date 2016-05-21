@@ -33,8 +33,10 @@ https://oauth.vk.com/authorize?client_id=<client_id>&scope=wall,offline&redirect
 ### Команда выполняется каждые VK_SCHEDULER_INTERVAL_SECONDS секунд:
 
 ```go
-gocron.Every(interval).Seconds().Do(task, authToken, profileUrl)
-<-gocron.Start()
+for {
+	task()
+	time.Sleep(time.Second * time.Duration(seconds))
+}
 ```
 
 ### Зависимости:
