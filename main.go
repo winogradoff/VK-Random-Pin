@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"github.com/elgs/gojq"
@@ -80,20 +81,20 @@ func pinPost(userId int64, postId int64) {
 }
 
 func task() {
-	fmt.Println("===")
-	fmt.Println(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).Local())
-
 	userId := getUserId()
 	numberOfPosts := getNumberOfPosts(userId)
 	postId := getRandomPost(userId, numberOfPosts)
 	pinPost(userId, postId)
 
-	fmt.Println("userId:", userId)
-	fmt.Println("numberOfPosts:", numberOfPosts)
-	fmt.Println("postId:", postId)
-	fmt.Print("pinned post: ", profileUrl, "?w=wall", userId, "_", postId)
-	fmt.Println()
-	fmt.Println("===")
+	w := bufio.NewWriter(os.Stdout)
+	fmt.Fprintln(w, "===")
+	fmt.Fprintln(w, time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).Local())
+	fmt.Fprintf(w, "userId: %d\n", userId)
+	fmt.Fprintf(w, "numberOfPosts: %d\n", numberOfPosts)
+	fmt.Fprintf(w, "postId: %d\n", postId)
+	fmt.Fprintf(w, "pinned post: %s?w=wall%d_%d\n", profileUrl, userId, postId)
+	fmt.Fprintln(w, "===")
+	w.Flush()
 }
 
 func main() {
