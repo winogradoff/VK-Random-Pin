@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"github.com/elgs/gojq"
@@ -86,15 +86,11 @@ func task() {
 	postId := getRandomPost(userId, numberOfPosts)
 	pinPost(userId, postId)
 
-	w := bufio.NewWriter(os.Stdout)
-	fmt.Fprintln(w, "===")
-	fmt.Fprintln(w, time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).Local())
-	fmt.Fprintf(w, "userId: %d\n", userId)
-	fmt.Fprintf(w, "numberOfPosts: %d\n", numberOfPosts)
-	fmt.Fprintf(w, "postId: %d\n", postId)
-	fmt.Fprintf(w, "pinned post: %s?w=wall%d_%d\n", profileUrl, userId, postId)
-	fmt.Fprintln(w, "===")
-	w.Flush()
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf("%s\n", time.Now().UTC()))
+	buffer.WriteString(fmt.Sprintf("uid: %d, posts: %d, pinned: %d\n", userId, numberOfPosts, postId))
+	buffer.WriteString(fmt.Sprintf("url: %s?w=wall%d_%d\n\n", profileUrl, userId, postId))
+	fmt.Print(buffer.String())
 }
 
 func main() {
