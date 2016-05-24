@@ -38,7 +38,3 @@ for {
 	time.Sleep(time.Second * time.Duration(seconds))
 }
 ```
-
-### Зависимости:
-
-* [gojq — JSON query in Golang](https://github.com/elgs/gojq)

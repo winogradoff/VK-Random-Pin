@@ -2,9 +2,9 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/elgs/gojq"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -16,6 +16,7 @@ import (
 )
 
 const API_METHOD_URL = "https://api.vk.com/method/"
+const API_VERSION = "5.52"
 
 var (
 	authToken  string
@@ -23,61 +24,74 @@ var (
 	seconds    int64
 )
 
-func request(methodName string, params map[string]string) string {
-	values := url.Values{"access_token": {authToken}}
+// Запрос к API ВКонтакте
+func request(methodName string, params map[string]string) []byte {
+	values := url.Values{}
+	values.Set("access_token", authToken)
+	values.Set("v", API_VERSION)
 	for k, v := range params {
 		values.Set(k, v)
 	}
 	response, _ := http.PostForm(API_METHOD_URL+methodName, values)
 	defer response.Body.Close()
 	body, _ := ioutil.ReadAll(response.Body)
-	return string(body)
+	return body
 }
 
 // Получить id пользователя по ссылке на профиль
 func getUserId() int64 {
 	urlParts := strings.Split(profileUrl, "/")
-	params := map[string]string{
+	response := request("users.get", map[string]string{
 		"user_ids": urlParts[len(urlParts)-1],
+	})
+	var result struct {
+		Response []struct {
+			UserId int64 `json:"id"`
+		} `json:"response"`
 	}
-	response := request("users.get", params)
-	jq, _ := gojq.NewStringQuery(response)
-	userId, _ := jq.QueryToInt64("response.[0].uid")
-	return userId
+	json.Unmarshal(response, &result)
+	return result.Response[0].UserId
 }
 
 // Получить количество записей на стене пользователя
 func getNumberOfPosts(userId int64) int64 {
-	params := map[string]string{
+	response := request("wall.get", map[string]string{
 		"owner_id": strconv.FormatInt(userId, 10),
 		"count":    "1",
+	})
+	var result struct {
+		Response struct {
+			Count int64 `json:"count"`
+		} `json:"response"`
 	}
-	response := request("wall.get", params)
-	jq, _ := gojq.NewStringQuery(response)
-	numberOfPosts, _ := jq.QueryToInt64("response.[0]")
-	return numberOfPosts
+	json.Unmarshal(response, &result)
+	return result.Response.Count
 }
 
 // Получить случайный пост
 func getRandomPost(userId int64, numberOfPosts int64) int64 {
-	params := map[string]string{
+	response := request("wall.get", map[string]string{
 		"owner_id": strconv.FormatInt(userId, 10),
 		"offset":   strconv.FormatInt(rand.Int63n(numberOfPosts), 10),
 		"count":    "1",
+	})
+	var result struct {
+		Response struct {
+			Items []struct {
+				PostId int64 `json:"id"`
+			} `json:"items"`
+		} `json:"response"`
 	}
-	response := request("wall.get", params)
-	jq, _ := gojq.NewStringQuery(response)
-	postId, _ := jq.QueryToInt64("response.[1].id")
-	return postId
+	json.Unmarshal(response, &result)
+	return result.Response.Items[0].PostId
 }
 
 // Закрепить пост
 func pinPost(userId int64, postId int64) {
-	params := map[string]string{
+	request("wall.pin", map[string]string{
 		"owner_id": strconv.FormatInt(userId, 10),
 		"post_id":  strconv.FormatInt(postId, 10),
-	}
-	request("wall.pin", params)
+	})
 }
 
 func task() {
