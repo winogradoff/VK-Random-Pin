@@ -1,6 +1,6 @@
 # go-vk-random-pin
 
-Heroku clock-процесс на Go для закрепление случайного поста на стене VK.
+Heroku clock-процесс на Go для закрепление случайного поста на стене ВКонтакте.
 
 ### Установка:
 
@@ -14,12 +14,18 @@ go get github.com/winogradoff/go-vk-random-pin
 go-vk-random-pin
 ```
 
-### В переменных окружения (Config Variables для Heroku) должны быть заданы следущие значения:
+### В переменных окружения должны быть заданы значения:
 
 ```
-VK_AUTH_TOKEN = <токен авторизации в VK>
-VK_SCHEDULER_INTERVAL_SECONDS = <интервал в секундах>
-VK_PROFILE_URL = <ссылка на профиль (http://vk.com/user)>
+VK_TOKEN = <токен авторизации>
+VK_USERNAME = <имя пользователя>
+VK_DELAY = <задержка в секундах>
+```
+
+### Они также могут быть заданы в виде ключей при запуске:
+
+```
+go-vk-random-pin -token <токен> -username <имя> -delay <задержка>
 ```
 
 ### Токен авторизации можно получить при переходе по следующему URL:
@@ -28,13 +34,4 @@ VK_PROFILE_URL = <ссылка на профиль (http://vk.com/user)>
 https://oauth.vk.com/authorize?client_id=<client_id>&scope=wall,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&v=5.29&response_type=token
 ```
 
-где `<client_id>` — идентификатор приложения VK.
-
-### Команда выполняется каждые VK_SCHEDULER_INTERVAL_SECONDS секунд:
-
-```go
-for {
-	task()
-	time.Sleep(time.Second * time.Duration(seconds))
-}
-```
+где `<client_id>` — идентификатор приложения ВКонтакте.
