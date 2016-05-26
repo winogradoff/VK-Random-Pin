@@ -19,6 +19,8 @@ func main() {
 	}
 	defer db.Close()
 
+	location, _ := time.LoadLocation("Europe/Moscow")
+
 	go func() {
 		gin.SetMode(gin.ReleaseMode)
 		router := gin.Default()
@@ -26,7 +28,7 @@ func main() {
 
 		router.GET("/", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "index.tmpl", gin.H{
-				"time":           time.Now().UTC(),
+				"time":           time.Now().In(location),
 				"API_METHOD_URL": lib.API_METHOD_URL,
 				"API_VERSION":    lib.API_VERSION,
 				"MESSAGES_SIZE":  lib.MESSAGES_SIZE,

@@ -91,12 +91,15 @@ func FetchMessages(db *sql.DB) []Message {
 
 	messages := make([]Message, 0)
 
+	location, _ := time.LoadLocation("Europe/Moscow")
+
 	for rows.Next() {
 		var m Message
 		err = rows.Scan(&m.Time, &m.UserId, &m.NumberOfPosts, &m.PostId)
 		if err != nil {
 			log.Fatal(err)
 		}
+		m.Time = m.Time.In(location)
 		messages = append(messages, m)
 	}
 
