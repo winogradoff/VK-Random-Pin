@@ -3,22 +3,23 @@ package go_vk_random_pin
 import (
 	"database/sql"
 	_ "github.com/lib/pq"
+	"log"
+	"os"
 	"time"
 )
 
 const (
 	API_METHOD_URL = "https://api.vk.com/method/"
 	API_VERSION    = "5.52"
-	MESSAGES_SIZE  = 100
+	MESSAGES_SIZE  = 100 // Количество хранимых сообщений в БД
 	TABLE_SQL      = `
 		CREATE TABLE IF NOT EXISTS log_messages
 		(
-			message_id      serial     default,
+			message_id      serial     PRIMARY KEY,
 			time            timestamp  NOT NULL DEFAULT now(),
 			user_id         integer    NOT NULL DEFAULT 0,
 			number_of_posts integer    NOT NULL DEFAULT 0,
-			post_id         integer    NOT NULL DEFAULT 0,
-			PRIMARY KEY (message_id, user_id, post_id)
+			post_id         integer    NOT NULL DEFAULT 0
 		);`
 )
 
@@ -29,7 +30,7 @@ type Message struct {
 	PostId        int64
 }
 
-func CreateSchema(db *pg.DB) error {
+func CreateSchema(db *sql.DB) error {
 	_, err := db.Exec(TABLE_SQL)
 	if err != nil {
 		return err
@@ -37,9 +38,9 @@ func CreateSchema(db *pg.DB) error {
 	return nil
 }
 
-func Connect() (*pg.DB, error) {
+func Connect() (*sql.DB, error) {
 	var (
-		db  *pg.DB
+		db  *sql.DB
 		err error
 	)
 
@@ -56,22 +57,33 @@ func Connect() (*pg.DB, error) {
 	return db, err
 }
 
-func InsertMessage(db *pg.DB, m *Message) error {
-	_, err := db.Exec(`
+func InsertMessage(db *sql.DB, m Message) error {
+	var err error
+
+	_, err = db.Exec(`
 		INSERT INTO log_messages
-		(time, user_id, number_of_posts, post_id) VALUES (?, ?, ?, ?)`,
-		m.Time, m.UserId, m.NumberOfPosts, m.PostId)
+		(user_id, number_of_posts, post_id) VALUES ($1, $2, $3);`,
+		m.UserId, m.NumberOfPosts, m.PostId)
+
+	if err != nil {
+		return err
+	}
+
+	// Очистить всё, кроме MESSAGES_SIZE последних
+	_, err = db.Exec(`
+		DELETE FROM log_messages
+		WHERE message_id NOT IN (
+			SELECT message_id FROM log_messages
+			ORDER BY time DESC LIMIT $1
+		);`, MESSAGES_SIZE)
+
 	return err
 }
 
-func FetchMessages(db *pg.DB) []Message {
+func FetchMessages(db *sql.DB) []Message {
 	rows, err := db.Query(`
-		SELECT
-		time, user_id, number_of_posts, post_id
-		FROM log_messages
-		ORDER BY record_date
-		DESC LIMIT ?`,
-		MESSAGES_SIZE)
+		SELECT time, user_id, number_of_posts, post_id
+		FROM log_messages ORDER BY time DESC;`)
 
 	if err != nil {
 		log.Fatal(err)

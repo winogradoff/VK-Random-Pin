@@ -18,13 +18,6 @@ import (
 	"time"
 )
 
-type message struct {
-	Time          time.Time
-	UserId        int64
-	NumberOfPosts int64
-	PostId        int64
-}
-
 const API_METHOD_URL = "https://api.vk.com/method/"
 const API_VERSION = "5.52"
 const MESSAGES_SIZE = 100
@@ -106,6 +99,11 @@ func pinPost(userId int64, postId int64) {
 }
 
 func main() {
+	var (
+		db  *sql.DB
+		err error
+	)
+
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	// Значения из окружения
@@ -120,16 +118,11 @@ func main() {
 	flag.Parse()
 
 	// Подключение к БД
-	db, err := lib.Connect()
-	if errd != nil {
+	db, err = lib.Connect()
+	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	lib.CreateSchema(db)
-
-	// Подписаться на системные сигналы
-	sigCh := make(chan os.Signal)
-	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
 		for {
@@ -137,16 +130,23 @@ func main() {
 			numberOfPosts := getNumberOfPosts(userId)
 			postId := getRandomPost(userId, numberOfPosts)
 			pinPost(userId, postId)
-			m := message{
+			m := lib.Message{
 				Time:          time.Now().UTC(),
 				UserId:        userId,
 				NumberOfPosts: numberOfPosts,
 				PostId:        postId,
 			}
-			lib.InsertMessage(db, m)
+			err = lib.InsertMessage(db, m)
+			if err != nil {
+				log.Fatal(err)
+			}
 			time.Sleep(time.Second * time.Duration(delay))
 		}
 	}()
+
+	// Подписаться на системные сигналы
+	sigCh := make(chan os.Signal)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 	// Ждать сигнала завершения
 	<-sigCh
