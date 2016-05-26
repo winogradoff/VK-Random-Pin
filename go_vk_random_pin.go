@@ -2,9 +2,15 @@ package go_vk_random_pin
 
 import (
 	"database/sql"
+	"encoding/json"
 	_ "github.com/lib/pq"
+	"io/ioutil"
 	"log"
+	"math/rand"
+	"net/http"
+	"net/url"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -28,6 +34,83 @@ type Message struct {
 	UserId        int64
 	NumberOfPosts int64
 	PostId        int64
+}
+
+type ApiVK struct {
+	Token    string
+	Username string
+	Delay    int64
+	Version  string
+	APIUrl   string
+}
+
+// Запрос к API
+func (api *ApiVK) Request(methodName string, params map[string]string) []byte {
+	values := url.Values{}
+	values.Set("access_token", api.Token)
+	values.Set("v", api.Version)
+	for k, v := range params {
+		values.Set(k, v)
+	}
+	response, _ := http.PostForm(api.APIUrl+methodName, values)
+	defer response.Body.Close()
+	body, _ := ioutil.ReadAll(response.Body)
+	return body
+}
+
+// ID пользователя
+func (api *ApiVK) GetUserId() int64 {
+	response := api.Request("users.get", map[string]string{
+		"user_ids": api.Username,
+	})
+	var result struct {
+		Response []struct {
+			UserId int64 `json:"id"`
+		} `json:"response"`
+	}
+	json.Unmarshal(response, &result)
+	return result.Response[0].UserId
+}
+
+// Количество записей на стене пользователя
+func (api *ApiVK) GetNumberOfPosts(userId int64) int64 {
+	response := api.Request("wall.get", map[string]string{
+		"owner_id": strconv.FormatInt(userId, 10),
+		"count":    "1",
+	})
+	var result struct {
+		Response struct {
+			Count int64 `json:"count"`
+		} `json:"response"`
+	}
+	json.Unmarshal(response, &result)
+	return result.Response.Count
+}
+
+// Случайный пост
+func (api *ApiVK) GetRandomPost(userId int64, numberOfPosts int64) int64 {
+	response := api.Request("wall.get", map[string]string{
+		"owner_id": strconv.FormatInt(userId, 10),
+		"offset":   strconv.FormatInt(rand.Int63n(numberOfPosts), 10),
+		"count":    "1",
+	})
+	var result struct {
+		Response struct {
+			Items []struct {
+				PostId int64 `json:"id"`
+			} `json:"items"`
+		} `json:"response"`
+	}
+	json.Unmarshal(response, &result)
+	return result.Response.Items[0].PostId
+}
+
+// Закрепить пост
+func (api *ApiVK) PinPost(userId int64, postId int64) {
+	api.Request("wall.pin", map[string]string{
+		"owner_id": strconv.FormatInt(userId, 10),
+		"post_id":  strconv.FormatInt(postId, 10),
+	})
 }
 
 func CreateSchema(db *sql.DB) error {
