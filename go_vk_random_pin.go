@@ -3,6 +3,7 @@ package go_vk_random_pin
 import (
 	"database/sql"
 	_ "github.com/lib/pq"
+	"time"
 )
 
 const (
