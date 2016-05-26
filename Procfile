@@ -1,1 +1,1 @@
-clock: go-vk-random-pin
+web: go-vk-random-pin

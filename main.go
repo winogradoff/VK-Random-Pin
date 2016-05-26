@@ -1,10 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
-	"fmt"
+	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -14,8 +13,16 @@ import (
 	"time"
 )
 
+type message struct {
+	Time          time.Time
+	UserId        int64
+	NumberOfPosts int64
+	PostId        int64
+}
+
 const API_METHOD_URL = "https://api.vk.com/method/"
 const API_VERSION = "5.52"
+const MESSAGES_SIZE = 100
 
 var (
 	token    string
@@ -92,20 +99,6 @@ func pinPost(userId int64, postId int64) {
 	})
 }
 
-func task() {
-	userId := getUserId()
-	numberOfPosts := getNumberOfPosts(userId)
-	postId := getRandomPost(userId, numberOfPosts)
-	pinPost(userId, postId)
-
-	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("%s\n", time.Now().UTC()))
-	buffer.WriteString(fmt.Sprintf("userId: %d\n", userId))
-	buffer.WriteString(fmt.Sprintf("numberOfPosts: %d\n", numberOfPosts))
-	buffer.WriteString(fmt.Sprintf("postId: %d\n\n", postId))
-	fmt.Print(buffer.String())
-}
-
 func main() {
 	// Значения из окружения
 	token = os.Getenv("VK_TOKEN")
@@ -120,8 +113,42 @@ func main() {
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	for {
-		task()
-		time.Sleep(time.Second * time.Duration(delay))
-	}
+	messages := make([]message, 0)
+
+	go func() {
+		for {
+			userId := getUserId()
+			numberOfPosts := getNumberOfPosts(userId)
+			postId := getRandomPost(userId, numberOfPosts)
+			pinPost(userId, postId)
+
+			messages = append(messages, message{
+				Time:          time.Now().UTC(),
+				UserId:        userId,
+				NumberOfPosts: numberOfPosts,
+				PostId:        postId,
+			})
+
+			for len(messages) > MESSAGES_SIZE {
+				messages = messages[1:]
+			}
+
+			time.Sleep(time.Second * time.Duration(delay))
+		}
+	}()
+
+	router := gin.Default()
+	router.LoadHTMLGlob("templates/*")
+
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{
+			"time":           time.Now().UTC(),
+			"API_METHOD_URL": API_METHOD_URL,
+			"API_VERSION":    API_VERSION,
+			"MESSAGES_SIZE":  MESSAGES_SIZE,
+			"Messages":       messages,
+		})
+	})
+
+	router.Run(":80")
 }

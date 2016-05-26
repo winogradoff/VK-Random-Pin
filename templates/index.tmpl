@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	
+<head>
+	<title>go-vk-random-pin</title>
+	<style>
+		table { 
+			width: 100%;
+			margin: 20px 0;
+			border: 1px solid black;
+			border-collapse: collapse;
+		}
+		th { 
+			text-align: left;
+			background: #ccc;
+			padding: 5px;
+			border: 1px solid black;
+		}
+		td { 
+			padding: 5px;
+			border: 1px solid black;
+		}
+	</style>
+</head>
+
+<body>
+	{{.time}}<br>
+	<strong>API_METHOD_URL:</strong>{{.API_METHOD_URL}}<br>
+	<strong>API_VERSION:</strong>{{.API_VERSION}}<br>
+	<strong>MESSAGES_SIZE:</strong>{{.MESSAGES_SIZE}}<br>
+
+	<table>
+		<tr>
+			<th>Time</th>
+			<th>UserId</th>
+			<th>NumberOfPosts</th>
+			<th>PostId</th>
+		</tr>
+		{{range $m := .Messages}}
+		<tr>
+			<td>{{$m.Time}}</td>
+			<td>{{$m.UserId}}</td>
+			<td>{{$m.NumberOfPosts}}</td>
+			<td>{{$m.PostId}}</td>
+		</tr>
+		{{end}}
+	</table>
+</body>
+
+</html>
